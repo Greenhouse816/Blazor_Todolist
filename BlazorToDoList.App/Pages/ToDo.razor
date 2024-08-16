@@ -1,0 +1,149 @@
+﻿@page "/todo"
+
+@using BlazorToDoList.App.Services
+@using BlazorToDoList.App.Models
+@inject IToDoService ToDoService
+
+<h1>To-Do List</h1>
+
+@if (items == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!items.Any())
+{
+    <p><em>No ToDo items exist.  Please add some.</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Remove</th>
+                <th>
+                    <span class="sort-link" @onclick=@(() => SortTable("DateCreated"))>Date</span>
+                    <span>@(GetSortStyle("DateCreated"))</span>
+                </th>
+                <th>
+                    <span class="sort-link" @onclick=@(() => SortTable("Description"))>Description</span>
+                    <span>@(GetSortStyle("Description"))</span>
+                </th>
+                <th>Is Complete</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in items)
+            {
+            <tr style="@(item.IsComplete ? "text-decoration: line-through" : "")">
+                <td><button @onclick="(() => RemoveTodo(item.ID))"><i class="oi oi-trash"></i></button></td>
+                <td>@item.DateCreated</td>
+                <td>@item.Description</td>
+                <td>
+                    @if (item.IsComplete)
+                    {
+                        <input type=checkbox @onchange="(() => ToggleToDo(item.ID))" checked />
+                    }
+                    else
+                    {
+                        <input type=checkbox @onchange="(() => ToggleToDo(item.ID))" />
+                    }
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (items != null)
+{
+    <input placeholder="A new ToDo item" @bind="@newItem" />
+    <button @onclick="AddTodo">Create</button>
+}
+
+@code{
+    List<ToDoItem> items = new List<ToDoItem>();
+    private string newItem;
+    private bool IsSortedAscending;
+    private string CurrentSortColumn;
+
+    /// <summary>
+    /// This method is responsible for loading the initial data the page requires.  We store this sample data
+    /// in a JSON file.
+    /// </summary>
+    /// <returns></returns>
+    protected override void OnInitialized()
+    {
+        items = ToDoService.Get();
+    }
+
+    /// <summary>
+    /// This method adds a new ToDo item.
+    /// </summary>
+    private void AddTodo()
+    {
+        if (!string.IsNullOrWhiteSpace(newItem))
+        {
+            var newToDoItem = new ToDoItem()
+            {
+                DateCreated = DateTime.Now,
+                Description = newItem,
+                ID = Guid.NewGuid()
+            };
+
+            items = ToDoService.Add(newToDoItem);
+
+            newItem = string.Empty; //We need to reset this string, otherwise the text box will still contain the value typed in.
+        }
+    }
+
+    private void ToggleToDo(Guid id)
+    {
+        items = ToDoService.Toggle(id);
+    }
+
+    private void RemoveTodo(Guid id)
+    {
+        items = ToDoService.Delete(id);
+    }
+
+    private string GetSortStyle(string columnName)
+    {
+        if (CurrentSortColumn != columnName)
+        {
+            return string.Empty;
+        }
+        if (IsSortedAscending)
+        {
+            return "▲";
+        }
+        else
+        {
+            return "▼";
+        }
+    }
+
+    private void SortTable(string columnName)
+    {
+        if (columnName != CurrentSortColumn)
+        {
+            //We need to force order by descending on the new column
+            items = items.OrderBy(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+            CurrentSortColumn = columnName;
+            IsSortedAscending = true;
+
+        }
+        else //Sorting against same column but in different direction
+        {
+            if (IsSortedAscending)
+            {
+                items = items.OrderByDescending(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+            }
+            else
+            {
+                items = items.OrderBy(x => x.GetType().GetProperty(columnName).GetValue(x, null)).ToList();
+            }
+
+            IsSortedAscending = !IsSortedAscending;
+        }
+    }
+}
