@@ -4,3 +4,4 @@ This example project creates a [Blazor](https://dotnet.microsoft.com/apps/aspnet
 
 
 ### [Using Blazor to Build a Client-Side Single-Page App with .NET Core](https://exceptionnotfound.net/using-blazor-to-build-a-client-side-single-page-app-with-net-core/)
+ 
